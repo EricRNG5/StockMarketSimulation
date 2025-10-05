@@ -28,18 +28,6 @@ market_weights = [5, 2, 25, 25, 41, 2]
 changes_over_time = []
 market_cycle = 1
 portfolio = balance + total_stock * new_price
-# Instead of the fluctuations being constant and constantly skewed toward the upward direction,
-# I could make it so that random events happen using the random module.
-# Like a 2% Chance for Depressions, 8% chance for recessions, and 90% normal market behavior
-'''The Stock Market Games runs by using the market statuses to determine the current market statuses,
-    which will determine the fluctuations during the time period in which you are holding your stock.
-    The logic uses a weighting system and the choice function from the random module to get a status.
-    You can buy or sell stock at the end of the period, although selling stock hasn't been implemented yet.
-    The next update I want to do is to be able to sell stock, and to equate the timeframe and the movements
-    based off of the real time, perhaps using a module in Python. I could also make it so that the win or lose
-    tracks the actual portfolio value rather than stock prices, since it is a bit problematic at times. Perhaps,
-    I could add a counter to the timeframe, so that it goes one buy one, and people can make decisions during the 
-    downtime, so you can trade on a finer detail, and if you want to try to make money.'''
 game_running = str(input("Do you want to play using normal stock?"))
 if continue_option(game_running):
     game_running = True

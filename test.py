@@ -1,5 +1,5 @@
 import random
-from helper import continue_option, sr, check_bankruptcy, short_selling, insolvency
+from helper import continue_option, sr, check_bankruptcy, short_selling, insolvency, close_position
 from main import market_statuses, market_duration, market_weights, fluctuation_ranges
 
 balance = 1000
@@ -36,21 +36,7 @@ while game_run:
                 break
             if not insolvency(total_sh, new_stock_price, portfolio):
                 total_sh, tosh = short_selling(total_sh, tosh, portfolio, new_stock_price)
-                close_position = input("Close position? (y/n)")
-                if continue_option(close_position):
-                    print(f"To close the position you will have to buyback shares at {new_stock_price}.")
-                    print(f"Your total shares number of shares is ${total_sh}.")
-                    input("Enter anything to close the position.")
-                    unrealized_pl = tosh - total_sh * new_stock_price
-                    portfolio += unrealized_pl
-                    tosh = 0
-                    total_sh = 0
-                    print(f"Your new balance is ${sr(portfolio)}.")
-                elif not continue_option(close_position):
-                    print(f"Your short position has not been closed.")
-                    print(f"Reminder: Your total short interest is {sr(tosh)}.")
-                    print(f"You are ${sr(portfolio * 3 - total_sh * new_stock_price)} away from a margin call. (Bankruptcy)")
-                    print(f"Your balance is ${sr(portfolio)}. Make sure to keep it above short interest.")
+                total_sh, tosh, portfolio = close_position(total_sh, tosh, new_stock_price, portfolio)
     if insolvency(total_sh, new_stock_price, portfolio):
         game_run = False
     if not insolvency(total_sh, new_stock_price, portfolio):

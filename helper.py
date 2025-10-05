@@ -96,3 +96,24 @@ def short_selling(total_sh, tosh, portfolio, new_price):
 
 def insolvency(total_sh, new_price, portfolio):
     return check_bankruptcy((total_sh * new_price), portfolio)
+
+def close_position(total_sh, tosh, new_stock_price, portfolio):
+    close_position = input("Close position? (y/n)")
+    if continue_option(close_position):
+        print(f"To close the position you will have to buyback shares at {new_stock_price}.")
+        print(f"Your total shares number of shares is ${total_sh}.")
+        input("Enter anything to close the position.")
+        unrealized_pl = tosh - total_sh * new_stock_price
+        portfolio += unrealized_pl
+        tosh = 0
+        total_sh = 0
+        print(f"Your new balance is ${sr(portfolio)}.")
+        return total_sh, tosh, portfolio
+    elif not continue_option(close_position):
+        print(f"Your short position has not been closed.")
+        print(f"Reminder: Your total short interest is {sr(tosh)}.")
+        print(f"You are ${sr(portfolio * 3 - total_sh * new_stock_price)} away from a margin call. (Bankruptcy)")
+        print(f"Your balance is ${sr(portfolio)}. Make sure to keep it above short interest.")
+        return total_sh, tosh, portfolio
+    else:
+        return total_sh, tosh, portfolio
