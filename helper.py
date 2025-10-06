@@ -1,8 +1,8 @@
-def purchasing_stock(balance, total_stock, new_price):
-    purchasing = str(input(f"Do you want to purchase at this price? ({sr(new_price)})"))
+def purchasing_stock(balance, total_stock, current_stock_price):
+    purchasing = str(input(f"Do you want to purchase at this price? ({sr(current_stock_price)})"))
     if continue_option(purchasing.lower()):
-        number_of_stock_purchased = int(input(f"How much to purchase at this price? ({sr(new_price)})"))
-        total_purchase_price = (number_of_stock_purchased * round(new_price, 2))
+        number_of_stock_purchased = int(input(f"How much to purchase at this price? ({sr(current_stock_price)})"))
+        total_purchase_price = (number_of_stock_purchased * round(current_stock_price, 2))
         purchase_infeasible = total_purchase_price > balance
         if purchase_infeasible:
             print(f"Unable to purchase {number_of_stock_purchased}. ({total_purchase_price - balance})")
@@ -21,10 +21,10 @@ def purchasing_stock(balance, total_stock, new_price):
         return balance, total_stock
 
 
-def selling_stock(balance, total_stock, new_price):
-    selling = str(input(f"Do you want to sell at this price? ({sr(new_price)})"))
+def selling_stock(balance, total_stock, current_stock_price):
+    selling = str(input(f"Do you want to sell at this price? ({sr(current_stock_price)})"))
     if continue_option(selling.lower()):
-        selling_amount = int(input(f"How much do you want to sell at this price? ({sr(new_price)})"))
+        selling_amount = int(input(f"How much do you want to sell at this price? ({sr(current_stock_price)})"))
         if selling_amount <= 0 and total_stock == 0:
             print("Unable to sell stock that you don't own.")
             return balance, total_stock
@@ -33,7 +33,7 @@ def selling_stock(balance, total_stock, new_price):
             return balance, total_stock
         else:
             print(f"You sold {selling_amount} stock. You have {total_stock - selling_amount} stock left.")
-            balance += sr(selling_amount * new_price)
+            balance += sr(selling_amount * current_stock_price)
             print(f"New balance: ${balance}")
             total_stock -= selling_amount
             return balance, total_stock
@@ -69,51 +69,57 @@ def check_bankruptcy(total_short_interest, bankruptcy_threshold):
     elif total_short_interest >= bankruptcy_threshold:
         return True
 
-def short_selling(total_sh, tosh, portfolio, new_price):
-    short = str(input(f"Do you want to short at this price? ({sr(new_price)})"))
+
+def short_selling(total_stock_held, total_original_short_interest, portfolio_value, current_stock_price):
+    short = str(input(f"Do you want to short at this price? ({sr(current_stock_price)})"))
     if continue_option(short):
         short_amount = int(input(f"How many stock do you want to short-sell?"))
         if short_amount <= 0:
             print("Unable to short negative stock.")
-            return total_sh, tosh
+            return total_stock_held, total_original_short_interest
         elif short_amount > 0:
-            short_interest = short_amount * new_price
-            if check_bankruptcy(((short_amount + total_sh) * new_price), portfolio):
+            short_interest = short_amount * current_stock_price
+            if check_bankruptcy(((short_amount + total_stock_held) * current_stock_price), portfolio_value):
                 print(f"You cannot short greater than your entire margin account value.")
-                return total_sh, tosh
-            elif not check_bankruptcy(((short_amount + total_sh) * new_price), portfolio):
-                tosh += short_interest
-                total_sh += short_amount
-                print(f"New Total Stock Shorted: {total_sh} stock.")
-                print(f"New Total Short Interest: ${total_sh * new_price}")
-                return total_sh, tosh
-        return total_sh, tosh
+                return total_stock_held, total_original_short_interest
+            elif not check_bankruptcy(((short_amount + total_stock_held) * current_stock_price), portfolio_value):
+                total_original_short_interest += short_interest
+                total_stock_held += short_amount
+                print(f"New Total Stock Shorted: {total_stock_held} stock.")
+                print(f"New Total Short Interest: ${total_stock_held * current_stock_price}")
+                return total_stock_held, total_original_short_interest
+        return total_stock_held, total_original_short_interest
     elif not continue_option(short):
         print("No stock shorted at this price.")
-        return total_sh, tosh
+        return total_stock_held, total_original_short_interest
     else:
-        return total_sh, tosh
+        return total_stock_held, total_original_short_interest
 
-def insolvency(total_sh, new_price, portfolio):
-    return check_bankruptcy((total_sh * new_price), portfolio)
+def insolvency(total_stock_held, current_stock_price, portfolio_value):
+    return check_bankruptcy((total_stock_held * current_stock_price), portfolio_value)
 
-def close_position(total_sh, tosh, new_stock_price, portfolio):
+
+def close_position(total_stock_held, total_original_short_interest, current_stock_price, portfolio_value):
     close_position = input("Close position? (y/n)")
     if continue_option(close_position):
-        print(f"To close the position you will have to buyback shares at {new_stock_price}.")
-        print(f"Your total shares number of shares is ${total_sh}.")
+        print(f"To close the position you will have to buyback shares at {current_stock_price}.")
+        print(f"Your total shares number of shares is ${total_stock_held}.")
         input("Enter anything to close the position.")
-        unrealized_pl = tosh - total_sh * new_stock_price
-        portfolio += unrealized_pl
-        tosh = 0
-        total_sh = 0
-        print(f"Your new balance is ${sr(portfolio)}.")
-        return total_sh, tosh, portfolio
+        unrealized_pl = total_original_short_interest - total_stock_held * current_stock_price
+        portfolio_value += unrealized_pl
+        total_original_short_interest = 0
+        total_stock_held = 0
+        print(f"Your new balance is ${sr(portfolio_value)}.")
+        return total_stock_held, total_original_short_interest, portfolio_value
     elif not continue_option(close_position):
         print(f"Your short position has not been closed.")
-        print(f"Reminder: Your total short interest is {sr(tosh)}.")
-        print(f"You are ${sr(portfolio * 3 - total_sh * new_stock_price)} away from a margin call. (Bankruptcy)")
-        print(f"Your balance is ${sr(portfolio)}. Make sure to keep it above short interest.")
-        return total_sh, tosh, portfolio
+        print(f"Reminder: Your total short interest is {sr(total_original_short_interest)}.")
+        print(f"You are ${sr(portfolio_value * 3 - total_stock_held * current_stock_price)} away from forced liquidation. (Bankruptcy)")
+        print(f"Your balance is ${sr(portfolio_value)}. Make sure to keep it above short interest.")
+        return total_stock_held, total_original_short_interest, portfolio_value
     else:
-        return total_sh, tosh, portfolio
+        return total_stock_held, total_original_short_interest, portfolio_value
+
+def portfolio(balance, current_stock_price, total_stock):
+    portfolio_value = balance + current_stock_price * total_stock
+    return portfolio_value
