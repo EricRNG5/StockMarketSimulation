@@ -62,12 +62,17 @@ def continue_option(user_input):
     else:
         return False
 
-def check_bankruptcy(total_short_interest, bankruptcy_threshold):
-    bankruptcy_threshold = bankruptcy_threshold * 3
-    if total_short_interest < bankruptcy_threshold:
-        return False
-    elif total_short_interest >= bankruptcy_threshold:
+def unrealized_pl(total_original_short_interest, current_stock_price, total_stock_held, portfolio_value):
+    current_short_value = current_stock_price * total_stock_held
+    realized_profit_loss = portfolio_value + (total_original_short_interest - current_short_value)
+    return realized_profit_loss
+
+def check_bankruptcy(loss_from_position, bankruptcy_threshold):
+    real_equity = loss_from_position + bankruptcy_threshold
+    if real_equity <= 0:
         return True
+    elif real_equity > 0:
+        return False
 
 
 def short_selling(total_stock_held, total_original_short_interest, portfolio_value, current_stock_price):
@@ -79,10 +84,10 @@ def short_selling(total_stock_held, total_original_short_interest, portfolio_val
             return total_stock_held, total_original_short_interest
         elif short_amount > 0:
             short_interest = short_amount * current_stock_price
-            if check_bankruptcy(((short_amount + total_stock_held) * current_stock_price), portfolio_value):
+            if insolvency(total_stock_held + short_amount, current_stock_price, total_original_short_interest, portfolio_value):
                 print(f"You cannot short greater than your entire margin account value.")
                 return total_stock_held, total_original_short_interest
-            elif not check_bankruptcy(((short_amount + total_stock_held) * current_stock_price), portfolio_value):
+            elif not insolvency(total_stock_held + short_amount, current_stock_price, total_original_short_interest, portfolio_value):
                 total_original_short_interest += short_interest
                 total_stock_held += short_amount
                 print(f"New Total Stock Shorted: {total_stock_held} stock.")
@@ -95,8 +100,9 @@ def short_selling(total_stock_held, total_original_short_interest, portfolio_val
     else:
         return total_stock_held, total_original_short_interest
 
-def insolvency(total_stock_held, current_stock_price, portfolio_value):
-    return check_bankruptcy((total_stock_held * current_stock_price), portfolio_value)
+def insolvency(total_stock_held, current_stock_price, total_original_short_interest, portfolio_value):
+    pl_from_position = unrealized_pl(total_original_short_interest, current_stock_price, total_stock_held, portfolio_value)
+    return check_bankruptcy(pl_from_position, portfolio_value)
 
 
 def close_position(total_stock_held, total_original_short_interest, current_stock_price, portfolio_value):
@@ -105,16 +111,15 @@ def close_position(total_stock_held, total_original_short_interest, current_stoc
         print(f"To close the position you will have to buyback shares at {current_stock_price}.")
         print(f"Your total shares number of shares is ${total_stock_held}.")
         input("Enter anything to close the position.")
-        unrealized_pl = total_original_short_interest - total_stock_held * current_stock_price
-        portfolio_value += unrealized_pl
+        portfolio_value =  unrealized_pl(total_original_short_interest, current_stock_price, total_stock_held, portfolio_value)
         total_original_short_interest = 0
         total_stock_held = 0
         print(f"Your new balance is ${sr(portfolio_value)}.")
         return total_stock_held, total_original_short_interest, portfolio_value
     elif not continue_option(close_position):
         print(f"Your short position has not been closed.")
-        print(f"Reminder: Your total short interest is {sr(total_original_short_interest)}.")
-        print(f"You are ${sr(portfolio_value * 3 - total_stock_held * current_stock_price)} away from forced liquidation. (Bankruptcy)")
+        print(f"Reminder: Your total current short interest is {sr(total_stock_held * current_stock_price)}.")
+        print(f"You are ${sr(unrealized_pl(total_original_short_interest, current_stock_price, total_stock_held, portfolio_value))} away from forced liquidation. (Bankruptcy)")
         print(f"Your balance is ${sr(portfolio_value)}. Make sure to keep it above short interest.")
         return total_stock_held, total_original_short_interest, portfolio_value
     else:
